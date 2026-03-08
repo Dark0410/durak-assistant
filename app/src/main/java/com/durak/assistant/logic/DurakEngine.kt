@@ -21,7 +21,7 @@ class DurakEngine(context: Context) {
      * @param isBitoEnabled Флаг, нажата ли кнопка "Бито" (карты уходят в сброс).
      */
     fun updateGameState(onTable: List<GameCard>, inHand: List<GameCard>, trump: String, isBitoEnabled: Boolean = false) {
-        trumpSuit = trump
+        if (trump.isNotEmpty()) trumpSuit = trump
         myCards.clear()
         myCards.addAll(inHand)
         
@@ -30,6 +30,13 @@ class DurakEngine(context: Context) {
             cardsInGraveyard.addAll(onTable)
         }
     }
+
+    fun getRemainingCardsCount(tableCardsCount: Int): Int {
+        val remaining = deckSize - cardsInGraveyard.size - myCards.size - tableCardsCount
+        return if (remaining < 0) 0 else remaining
+    }
+
+    fun getTrumpSuit(): String = trumpSuit ?: "Неизвестно"
 
     fun generatePrompt(tableCards: List<GameCard>): String {
         val cardsRemaining = deckSize - cardsInGraveyard.size - myCards.size - (tableCards.size)

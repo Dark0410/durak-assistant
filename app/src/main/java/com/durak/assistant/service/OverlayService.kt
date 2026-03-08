@@ -33,11 +33,15 @@ class OverlayService : Service() {
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
+    private lateinit var durakEngine: DurakEngine
+    private var isAnalyzing = false
     
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val analysisRunnable = object : Runnable {
         override fun run() {
-            updateOverlayWithMockAdvice()
+            if (isAnalyzing) {
+                performActualAnalysis()
+            }
             handler.postDelayed(this, 3000)
         }
     }
@@ -45,6 +49,7 @@ class OverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        durakEngine = DurakEngine(this)
         createNotificationChannel()
     }
 
@@ -99,6 +104,10 @@ class OverlayService : Service() {
         val metrics = resources.displayMetrics
         imageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGBA_8888, 2)
         
+        imageReader?.setOnImageAvailableListener({ reader ->
+            // Кадр доступен
+        }, handler)
+
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "DurakCapture",
             metrics.widthPixels,
@@ -115,20 +124,46 @@ class OverlayService : Service() {
         handler.post(analysisRunnable)
     }
 
-    private fun updateOverlayWithMockAdvice() {
-        val advices = listOf(
-            "Совет: Жду начала раздачи...",
-            "Совет: Сбрасывай мелкие карты.",
-            "Совет: Противник зашел с 8ки, бей 10кой.",
-            "Совет: В колоде осталось 12 карт.",
-            "Анализ: Ищу карты на столе..."
-        )
-        val randomAdvice = advices.random()
-        
-        handler.post {
-            overlayBinding?.tvAdvice?.text = randomAdvice
-            overlayBinding?.tvCardsLeft?.text = "В колоде: ~${(10..36).random()}"
+    private fun performActualAnalysis() {
+        val image = imageReader?.acquireLatestImage()
+        if (image == null) {
+            handler.post { overlayBinding?.tvAdvice?.text = "Ожидание кадра..." }
+            return
         }
+
+        // В реальном приложении здесь будет конвертация Image -> Bitmap -> CardDetector
+        // Но так как у нас нет OpenCV/ML в SDK сейчас, мы эмулируем успешное распознавание 
+        // ситуации, основанной на ПРЕДЫДУЩИХ данных из DurakEngine (те, что ввел пользователь или мы нашли ранее)
+        
+        val prompt = durakEngine.generatePrompt(emptyList()) // Пока пустой стол для примера
+        
+        val request = com.durak.assistant.api.GigaChatRequest(
+            messages = listOf(com.durak.assistant.api.Message("user", prompt))
+        )
+
+        com.durak.assistant.api.GigaChatClient.api.getChatCompletion(
+            com.durak.assistant.api.GigaChatClient.getAuthToken(),
+            request
+        ).enqueue(object : retrofit2.Callback<com.durak.assistant.api.GigaChatResponse> {
+            override fun onResponse(
+                call: retrofit2.Call<com.durak.assistant.api.GigaChatResponse>,
+                response: retrofit2.Response<com.durak.assistant.api.GigaChatResponse>
+            ) {
+                val advice = response.body()?.choices?.firstOrNull()?.message?.content 
+                    ?: "Не удалось получить совет от ИИ"
+                
+                handler.post {
+                    overlayBinding?.tvAdvice?.text = advice
+                    overlayBinding?.tvCardsLeft?.text = "В колоде: ${durakEngine.getRemainingCardsCount(0)}"
+                }
+            }
+
+            override fun onFailure(call: retrofit2.Call<com.durak.assistant.api.GigaChatResponse>, t: Throwable) {
+                handler.post { overlayBinding?.tvAdvice?.text = "Ошибка сети: ${t.localizedMessage}" }
+            }
+        })
+
+        image.close()
     }
 
     private fun showOverlay() {
@@ -155,7 +190,14 @@ class OverlayService : Service() {
 
         windowManager.addView(overlayBinding?.root, params)
 
-        val durakEngine = DurakEngine(this)
+        overlayBinding?.switchAi?.setOnCheckedChangeListener { _, isChecked ->
+            isAnalyzing = isChecked
+            if (isChecked) {
+                Toast.makeText(this, "Анализ запущен", Toast.LENGTH_SHORT).show()
+            } else {
+                overlayBinding?.tvAdvice?.text = "Анализ остановлен"
+            }
+        }
 
         // Make it draggable
         var initialX = 0
