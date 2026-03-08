@@ -1,3 +1,17 @@
 <resources>
-    <string name="app_name">Дурак ИИ Ассистент</string>
+    <string name="app_name">Durak Assistant</string>
+    <string name="settings">Настройки</string>
+    <string name="gigachat_api_key">GigaChat API Key</string>
+    <string name="save">Сохранить</string>
+    
+    <!-- Game Settings -->
+    <string name="deck_size">Размер колоды</string>
+    <string name="players_count">Количество игроков</string>
+    <string name="game_rules">Правила игры</string>
+    <string name="deck_36">36 карт</string>
+    <string name="deck_24">24 карты</string>
+    <string name="deck_52">52 карты</string>
+    <string name="rules_simple">Обычный</string>
+    <string name="rules_podkidnoy">Подкидной</string>
+    <string name="rules_perevodnoy">Переводной</string>
 </resources>

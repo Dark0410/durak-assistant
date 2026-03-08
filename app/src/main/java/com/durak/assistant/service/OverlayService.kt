@@ -153,6 +153,40 @@ class OverlayService : Service() {
         }
 
         windowManager.addView(overlayBinding?.root, params)
+
+        val durakEngine = DurakEngine(this)
+
+        // Make it draggable
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+
+        overlayBinding?.root?.setOnTouchListener { view, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    windowManager.updateViewLayout(overlayBinding?.root, params)
+                    true
+                }
+                else -> false
+            }
+        }
+
+        overlayBinding?.btnMarkBito?.setOnClickListener {
+            // В реальной жизни мы бы брали текущие карты со стола. 
+            // Сейчас просто эмулируем уход нескольких карт в биту для демонстрации памяти.
+            durakEngine.updateGameState(emptyList(), emptyList(), "Черви", true)
+            Toast.makeText(this, "Карты ушли в биту. ИИ запомнил.", Toast.LENGTH_SHORT).show()
+        }
         
         overlayBinding?.btnSettings?.setOnClickListener {
             val intent = Intent(this, com.durak.assistant.SettingsActivity::class.java).apply {

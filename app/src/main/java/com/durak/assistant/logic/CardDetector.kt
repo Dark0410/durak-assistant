@@ -30,4 +30,3 @@ class CardDetector {
     }
 }
 
-data class GameCard(val rank: String, val suit: String, val isTrump: Boolean)
