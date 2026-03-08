@@ -55,11 +55,14 @@ class OverlayService : Service() {
 
     @Suppress("DEPRECATION")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val resultData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent?.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
-        } else {
-            intent?.getParcelableExtra(EXTRA_RESULT_DATA)
-        }
+        val resultData = if (intent != null && intent.hasExtra(EXTRA_RESULT_DATA)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(EXTRA_RESULT_DATA)
+            }
+        } else null
         
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Ассистент Дурака запущен")
@@ -178,7 +181,9 @@ class OverlayService : Service() {
     private fun showOverlay() {
         if (overlayBinding != null) return
 
-        overlayBinding = LayoutOverlayBinding.inflate(LayoutInflater.from(this))
+        // Поток-безопасно и с темой для SwitchCompat
+        val themedContext = androidx.appcompat.view.ContextThemeWrapper(this, R.style.Theme_DurakAssistant)
+        overlayBinding = LayoutOverlayBinding.inflate(LayoutInflater.from(themedContext))
         
         val params = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.WRAP_CONTENT
