@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "DurakAssistant"
-include ":app"
+include(":app")
