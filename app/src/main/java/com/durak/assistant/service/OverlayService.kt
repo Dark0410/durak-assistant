@@ -137,12 +137,21 @@ class OverlayService : Service() {
         
         val prompt = durakEngine.generatePrompt(emptyList()) // Пока пустой стол для примера
         
+        val prefs = getSharedPreferences("durak_prefs", Context.MODE_PRIVATE)
+        val apiKey = prefs.getString("gigachat_key", "") ?: ""
+        
+        if (apiKey.isEmpty()) {
+            handler.post { overlayBinding?.tvAdvice?.text = "Ошибка: Введите API ключ в настройках!" }
+            image.close()
+            return
+        }
+
         val request = com.durak.assistant.api.GigaChatRequest(
             messages = listOf(com.durak.assistant.api.Message("user", prompt))
         )
 
         com.durak.assistant.api.GigaChatClient.api.getChatCompletion(
-            com.durak.assistant.api.GigaChatClient.getAuthToken(),
+            com.durak.assistant.api.GigaChatClient.getAuthToken(apiKey),
             request
         ).enqueue(object : retrofit2.Callback<com.durak.assistant.api.GigaChatResponse> {
             override fun onResponse(

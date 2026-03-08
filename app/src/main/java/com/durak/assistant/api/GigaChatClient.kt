@@ -30,9 +30,9 @@ object GigaChatClient {
 
     val api: GigaChatApi = retrofit.create(GigaChatApi::class.java)
 
-    fun getAuthToken(): String {
-        // В идеале здесь должен быть запрос на получение токена через OAuth
-        // Для упрощения возвращаем заготовленный ключ
-        return "Bearer $AUTH_KEY"
+    fun getAuthToken(keyFromSettings: String): String {
+        // Если ключ пустой, используем заглушку (для предотвращения краша на пустом Bearer)
+        val token = if (keyFromSettings.isEmpty()) "EMPTY_KEY" else keyFromSettings
+        return "Bearer $token"
     }
 }
