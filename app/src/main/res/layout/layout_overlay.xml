@@ -43,7 +43,9 @@
         android:textColor="@color/white"
         android:textSize="14sp"
         android:fontFamily="sans-serif-medium"
-        android:lineSpacingExtra="2dp" />
+        android:lineSpacingExtra="2dp"
+        android:maxLines="3"
+        android:ellipsize="end" />
 
     <!-- Button to mark current table cards as GONE (Bito) -->
     <Button
