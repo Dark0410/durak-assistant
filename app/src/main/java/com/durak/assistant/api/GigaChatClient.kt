@@ -12,15 +12,31 @@ object GigaChatClient {
     // ВНИМАНИЕ: Пользователь должен заменить это на свой Client ID / Client Secret или готовый токен
     private const val AUTH_KEY = "YOUR_GIGACHAT_AUTH_KEY"
 
-    private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+    private fun getUnsafeOkHttpClient(): OkHttpClient {
+        try {
+            val trustAllCerts = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
+                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+            })
+
+            val sslContext = javax.net.ssl.SSLContext.getInstance("SSL")
+            sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+            val sslSocketFactory = sslContext.socketFactory
+
+            val builder = OkHttpClient.Builder()
+            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as javax.net.ssl.X509TrustManager)
+            builder.hostnameVerifier { _, _ -> true }
+            builder.addInterceptor(logging)
+            builder.connectTimeout(30, TimeUnit.SECONDS)
+            builder.readTimeout(30, TimeUnit.SECONDS)
+            return builder.build()
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(logging)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val okHttpClient = getUnsafeOkHttpClient()
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
